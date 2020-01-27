@@ -65,7 +65,6 @@ def swapLocalitzacions(idPosRepetides): #canviarem les trajectories a partir de 
     swap2=[]
     LOG_FILENAME = 'logFile.log'
     logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
-    print idPosRepetides
     while (mida < len(idPosRepetides)-1):#anirem recorrent totes les latituds que hem trobat que es repeteixen menys la ultima
         trobat = False
         trobat2= False

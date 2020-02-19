@@ -1,4 +1,5 @@
 import os,collections
+import logging
 
 def llegirCoordenades(roots,files):
     coordenadesInicials = {}
@@ -15,6 +16,8 @@ def llegirCoordenades(roots,files):
         linees=f.readlines() #guardem el conjunt de linees del fitxer que tractem
         for l in linees:
             linees = l.split(',')
+            #linees[2] = linees[2][:len(linees[2])-1]
+            #linees[3] = linees[3][:len(linees[3])-1]
             tuples = (linees[2],linees[3]) #guardem les COORDENADES de cada linea del fitxer pertinent
             coordenadesInicials[index].append(tuples) #anem creant un diccionari amb un id i totes les trajectories tal que: {1:[(lat,long),(lat,long)],2:...}
         f.close()
@@ -29,7 +32,6 @@ def interseccions(coordenadesInicials):
 	    for k in coordenadesInicials.values()[i+1]:
                 if j == k:
                     interseccions.append(j)
-    #print interseccions
             
     for i,y in collections.Counter(interseccions).items(): #recorrem totes les lats i contem les latituds repetides amb un valor de lambda = 4
         if (y>0):
@@ -45,34 +47,40 @@ def IdPosicionsRepetides(posRepetides):
             l=0
             while (l<len(coordenadesInicials.values()[k])): #anem recorrent cada tupla de lat,long inicial fins arribar a la ultima
                 if (coordenadesInicials.values()[count][l] == j): #accedim a totes les tuples de cada key, dins totes les tuples amb el parametre count accedim als keys de 1 en 1
-                    #dins cada key tenim un conjunt de tuples, amb el parametre l accedim a cada tupla de key en el que estiguem individualment 
+                    #dins cada key tenim un conjunt de tuples, amb el parametre l accedim a cada tupla de key en el que estiguem individualment
+                    #for o in idPos:
+                        #if coordenadesInicials.keys()[count] not in  idPos[0]:
                     idPos.append(tuple((coordenadesInicials.keys()[count],j)))#com estem dins la condicio de haver trobat una tupla igual a la del array que teniem guardat, afegim una tupla que ens digui 
                     l=l+1 #el key i la tupla per cada repe que trobi
                 else:
-                    pass
                     l=l+1 #seguent tupla del mateix key
             count=count+1 #seguent key
     idPos = list(set(idPos)) #treiem els repes i ho posem en forma de llista
+    
     return idPos
 
 
 def swapLocalitzacions(idPosRepetides): #canviarem les trajectories a partir de la seguent que trobem que sigui igual
     idFet=0
+    z=0
     id2Fet=0
     mida=0
     swap=[]
-    swap2=[]
-    
+    LOG_FILENAME = 'logFile.log'
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
     while (mida < len(idPosRepetides)-1):#anirem recorrent totes les latituds que hem trobat que es repeteixen menys la ultima
         trobat = False
         trobat2= False
         temp = []
         temp2=[]
+        count2=0
         if idPosRepetides[mida][0] in coordenadesInicials: #nomes per entrar si o si a aquest bucle
             count = 0
             for x in coordenadesInicials[idPosRepetides[mida][0]]:#recorrem totes les trajectories que tenim i busquem la que tingui un id = al que tenim guardat
-                if x == idPosRepetides[mida][1]:#quan el trobem
+                if x == idPosRepetides[mida][1] and count2<1:# and idPosRepetides[mida][0] not in swap:#quan el trobem
+                    swap.append(idPosRepetides[mida][0])
                     trobat2 = True
+                    count2=count2+1
                     idFet = count+1
                     if not temp: 
                         temp = coordenadesInicials[idPosRepetides[mida][0]][count+1:]#afegim el conjunt de trajectories a partir del de despres a un array buit
@@ -86,43 +94,53 @@ def swapLocalitzacions(idPosRepetides): #canviarem les trajectories a partir de 
         coun = 0
 	if trobat2 == True: #fem el mateix que abans, pero comprovem del conjunt de ids que tenim els de despres del que hem trobat a dalt
             for i in range(1,len(idPosRepetides)-mida):
-                if idPosRepetides[mida+i][0] in coordenadesInicials:
+                if idPosRepetides[mida+i][0] in coordenadesInicials and idPosRepetides[mida+i][1] == idPosRepetides[mida][1]:
                     trobat=True
                     count3 = 0
                     if trobat and coun <1:
                         for x in coordenadesInicials[idPosRepetides[mida+i][0]]:
-                            if x == idPosRepetides[mida+i][1] and coun<1:
+                            if x == idPosRepetides[mida+i][1] and coun<1:# and idPosRepetides[mida+i][0] not in swap:
+                                swap.append(idPosRepetides[mida+i][0])
                                 coun = coun+1
+                                z=z+1
                                 id2Fet = count3+1
                                 if not temp2:
                                     temp2 = coordenadesInicials[idPosRepetides[mida+i][0]][count3+1:]
                                 else:
                                     temp2.append(coordenadesInicials[idPosRepetides[mida+i][0]][count3+1:])
+                                """logging.debug('canvi numero' + ' '+str(z)+' ' +'del ID:'+' ' + str(idPosRepetides[mida][0])+' ' + 'a partir de'+' ' + str(coordenadesInicials[idPosRepetides[mida][0]][idFet-1]))
+                                logging.debug('-----------------')
+                                logging.debug('canvi del ID'+' ' + str(idPosRepetides[mida+i][0])+' ' + 'a partir de'+' ' + str(coordenadesInicials[idPosRepetides[mida+i][0]][count3]))
+                                logging.debug('----------------------------------')"""
+                                logging.debug(str(idPosRepetides[mida][0]))
+                                logging.debug(str(idPosRepetides[mida+i][0]))
+                                
                                 coordenadesInicials[idPosRepetides[mida][0]][idFet:] = temp2 #aqui finalment fem el swap. del vector que hem trobat a dalt que coincidia amb el id emmagatzemat, a partir de la localitzacio trobada, el seguent li posem l'array que hem afegir del id seguent
                                 coordenadesInicials[idPosRepetides[mida+i][0]][id2Fet:] = temp#li posem el array que teniem guardat del id anterior
+                                
 			    count3 = count3+1
     		    else: pass
 		else:
                     pass
 
 	mida= mida+1
-	#print temp2
     return coordenadesInicials
 
 
 
 def generarNousFitxers(coordenadesFinals):
     for i in coordenadesFinals:
-        print coordenadesFinals[i]
         f = open('C:/Users/SatecSistemas/Desktop/programillas/tfg/coordenadesFinals/' + i +".txt",'a')
         f.write(str(coordenadesFinals[i]))
         
 if __name__ == "__main__":
+    
+      
     PosicionsRepetides=[]
     idPosRepetides=[]
     coordenadesInicials = {}
     coordenadesFinals = {}
-    for (roots,dir,files) in os.walk('C:/Users/SatecSistemas/Desktop/programillas/tfg/coordenades'): #si eso ya cambio la ruta
+    for (roots,dir,files) in os.walk('C:/Users/SatecSistemas/Desktop/programillas/tfg/coordenadesTest'): #si eso ya cambio la ruta
         coordenadesInicials = llegirCoordenades(roots,files)#ja tinc totes les coordenades guardades a coordenadesUsuaris, compta ara les que estan repetides
     PosRepetides = interseccions(coordenadesInicials)
 
@@ -130,5 +148,3 @@ if __name__ == "__main__":
     #idLongiRepetides = IdLongitudsRepetides(longiRepetides)#obtenim els ids de les longituds repetides
     coordenadesFinals = swapLocalitzacions(idPosRepetides)#intercanviem les localitzacions de les latituds repetides
     generarNousFitxers(coordenadesFinals)#creem els fitxers amb les noves localitzacions
-    
-    
